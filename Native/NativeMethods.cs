@@ -15,11 +15,23 @@ internal static partial class NativeMethods
 
     // SW_MINIMIZE Window Show State
     internal const int SwMinimize = 6;
+
+    // SW_SHOW Window Show State
+    internal const int SwShow = 5;
+
+    // SW_RESTORE Window Show State
+    internal const int SwRestore = 9;
+
+    // CTRL_CLOSE_EVENT Signal Code
+    internal const uint CtrlCloseEvent = 2;
     #endregion
 
     #region Delegates
     // EnumWindows Callback
     internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    // SetConsoleCtrlHandler Callback
+    internal delegate bool ConsoleCtrlHandlerDelegate(uint controlType);
     #endregion
 
     #region P/Invoke
@@ -49,5 +61,12 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static partial bool SetConsoleCtrlHandler(
+        ConsoleCtrlHandlerDelegate? handlerRoutine,
+        [MarshalAs(UnmanagedType.Bool)] bool add
+    );
     #endregion
 }
