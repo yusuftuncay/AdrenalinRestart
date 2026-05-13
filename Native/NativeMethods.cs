@@ -35,9 +35,6 @@ internal static partial class NativeMethods
     #region Delegates
     // EnumWindows Callback
     internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
-
-    // SetConsoleCtrlHandler Callback
-    internal delegate bool ConsoleCtrlHandlerDelegate(uint controlType);
     #endregion
 
     #region P/Invoke
@@ -67,13 +64,6 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
-
-    [LibraryImport("kernel32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static partial bool SetConsoleCtrlHandler(
-        ConsoleCtrlHandlerDelegate? handlerRoutine,
-        [MarshalAs(UnmanagedType.Bool)] bool add
-    );
 
     [LibraryImport("user32.dll")]
     internal static partial IntPtr GetSystemMenu(

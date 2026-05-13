@@ -8,8 +8,11 @@ internal static class Logger
     #region Methods
     internal static void Log(string message, ConsoleColor color = ConsoleColor.White)
     {
+        // Write Timestamp and Message Without String Allocation
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
+        Console.Write('[');
+        Console.Write(DateTime.Now.ToString("HH:mm:ss"));
+        Console.Write("] ");
         Console.ForegroundColor = color;
         Console.WriteLine(message);
         Console.ResetColor();
@@ -22,7 +25,9 @@ internal static class Logger
     )
     {
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
+        Console.Write('[');
+        Console.Write(DateTime.Now.ToString("HH:mm:ss"));
+        Console.Write("] ");
         Console.ForegroundColor = ConsoleColor.White;
         Console.WriteLine(header);
         foreach (var item in items)
@@ -31,15 +36,6 @@ internal static class Logger
             Console.ForegroundColor = itemColor;
             Console.WriteLine($"- {item}");
         }
-        Console.ResetColor();
-    }
-
-    internal static void LogHeader(string title)
-    {
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.WriteLine(title);
-        Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(new string('-', title.Length));
         Console.ResetColor();
     }
 

@@ -73,16 +73,13 @@ internal static class AmdReset
     #region Private Methods
     private static void StopAmdProcesses()
     {
-        // Kill by Name Keyword
+        // Single Pass: Kill by Name, then by Path for Non-AMD-Named Processes
         foreach (var processInstance in ProcessTools.SafeGetAllProcesses())
         {
-            TryKillIfAmdByName(processInstance);
-        }
-
-        // Kill by Path Marker (Catches AMD Processes Without AMD/Radeon in Name)
-        foreach (var processInstance in ProcessTools.SafeGetAllProcesses())
-        {
-            TryKillIfAmdByPath(processInstance);
+            if (ContainsAmdKeyword(processInstance.ProcessName))
+                TryKillIfAmdByName(processInstance);
+            else
+                TryKillIfAmdByPath(processInstance);
         }
 
         WaitForAmdProcessesToExit();
@@ -92,8 +89,6 @@ internal static class AmdReset
     {
         try
         {
-            if (!ContainsAmdKeyword(processInstance.ProcessName))
-                return;
             LogItem(
                 $"{processInstance.ProcessName} (PID {processInstance.Id})",
                 ConsoleColor.Yellow

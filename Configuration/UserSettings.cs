@@ -54,9 +54,9 @@ internal sealed class UserSettings
         File.WriteAllLines(
             s_settingsFilePath,
             [
-                $"StartupEnabled={StartupEnabled.ToString().ToLowerInvariant()}",
-                $"MinimizeToTray={MinimizeToTray.ToString().ToLowerInvariant()}",
-                $"StartMinimized={StartMinimized.ToString().ToLowerInvariant()}",
+                $"StartupEnabled={(StartupEnabled ? "true" : "false")}",
+                $"MinimizeToTray={(MinimizeToTray ? "true" : "false")}",
+                $"StartMinimized={(StartMinimized ? "true" : "false")}",
             ]
         );
     }

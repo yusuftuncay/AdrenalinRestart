@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.Versioning;
 using AdrenalinRestart.Amd;
 using AdrenalinRestart.Configuration;
@@ -31,8 +32,8 @@ internal static partial class Program
     // Game Process Name to Display Name Map
     private static Dictionary<string, string> s_gameProcessNameToDisplayName = [];
 
-    // Console Close Handler Reference (Kept Alive)
-    private static NativeMethods.ConsoleCtrlHandlerDelegate? s_consoleCtrlHandler;
+    // Named Event to Signal the First Instance to Show Its Console
+    private const string ShowConsoleEventName = "Global\\AdrenalinRestart_ShowConsole";
 
     #region Entry Point
     private static async Task Main()
@@ -45,6 +46,32 @@ internal static partial class Program
             Console.ReadKey(true);
             return;
         }
+
+        // Single Instance Guard
+        using var singleInstanceMutex = new Mutex(
+            initiallyOwned: true,
+            "Global\\AdrenalinRestart_SingleInstance",
+            out var isFirstInstance
+        );
+        if (!isFirstInstance)
+        {
+            // Signal the Running Instance to Show Its Console Window
+            if (EventWaitHandle.TryOpenExisting(ShowConsoleEventName, out var showConsoleEvent))
+            {
+                using (showConsoleEvent)
+                    showConsoleEvent.Set();
+            }
+
+            return;
+        }
+
+        // Listen for Show-Console Signals from Subsequent Instances
+        using var showConsoleWaitHandle = new EventWaitHandle(
+            initialState: false,
+            mode: EventResetMode.AutoReset,
+            name: ShowConsoleEventName
+        );
+        _ = Task.Run(() => WatchForShowConsoleSignalAsync(showConsoleWaitHandle));
 
         // Require Admin Rights at Startup
         if (!AmdReset.IsAdministrator())
@@ -68,10 +95,6 @@ internal static partial class Program
 
         // Apply Startup Registration
         ApplyStartupRegistration();
-
-        // Intercept Console Close Button to Minimize to Tray Instead
-        s_consoleCtrlHandler = HandleConsoleControl;
-        NativeMethods.SetConsoleCtrlHandler(s_consoleCtrlHandler, add: true);
 
         // Remove Close Button from System Menu So X Hides Instantly
         if (s_userSettings.MinimizeToTray)
@@ -150,6 +173,17 @@ internal static partial class Program
     #endregion
 
     #region Methods
+    private static async Task WatchForShowConsoleSignalAsync(EventWaitHandle waitHandle)
+    {
+        while (true)
+        {
+            // Wait for a Second Instance to Signal
+            await Task.Run(waitHandle.WaitOne).ConfigureAwait(false);
+            ShowConsoleWindow();
+            Log("Second Instance Detected, Showing Existing Window", ConsoleColor.DarkGray);
+        }
+    }
+
     private static void RunApplicationMessagePump()
     {
         // Initialize Tray Manager on the Message Pump Thread
@@ -185,12 +219,6 @@ internal static partial class Program
         );
 
         Application.Run();
-    }
-
-    private static bool HandleConsoleControl(uint controlType)
-    {
-        // Only Handle Ctrl+C, Not Close (Close Button is Removed)
-        return false;
     }
 
     private static void RemoveConsoleCloseButton()
@@ -556,7 +584,7 @@ internal static partial class Program
 
         try
         {
-            foreach (var processInstance in System.Diagnostics.Process.GetProcesses())
+            foreach (var processInstance in Process.GetProcesses())
             {
                 try
                 {
@@ -582,33 +610,8 @@ internal static partial class Program
         return running;
     }
 
-    private static bool IsAnyTrackedGameRunning(HashSet<string> gameProcessNames)
-    {
-        try
-        {
-            foreach (var processInstance in System.Diagnostics.Process.GetProcesses())
-            {
-                try
-                {
-                    var processName = processInstance.ProcessName;
-                    if (gameProcessNames.Contains(processName))
-                        return true;
-                }
-                catch { }
-                finally
-                {
-                    try
-                    {
-                        processInstance.Dispose();
-                    }
-                    catch { }
-                }
-            }
-        }
-        catch { }
-
-        return false;
-    }
+    private static bool IsAnyTrackedGameRunning(HashSet<string> gameProcessNames) =>
+        GetRunningGameProcesses(gameProcessNames).Count > 0;
 
     private static async Task TryTriggerResetAsync(
         HashSet<string> gameProcessNames,
